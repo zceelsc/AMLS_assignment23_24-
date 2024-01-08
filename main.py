@@ -1,21 +1,23 @@
 import subprocess
 
+
+location=r'C:\Users\user\AMLS_assignment23_24-\Datasets'  #change this accordingly
 def run_A_py():
     try:
-        subprocess.run(['python', 'A.py'], check=True)
+        subprocess.run(['python', 'A.py', location], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error running a.py: {e}")
 
 
 def run_B_py():
     try:
-        subprocess.run(['python', 'B.py'], check=True)
+        subprocess.run(['python', 'B.py', location], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error running B.py: {e}")
 
 
 
-option = input('first task or second task: ')
+option = input('A or B: ')
 # Call the function to run a.py
 if option=='A' or option =='a':
     run_A_py()
