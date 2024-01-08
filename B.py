@@ -8,11 +8,14 @@ import torchvision.transforms as transforms
 
 import medmnist
 from medmnist import INFO, Evaluator
+import sys
+
+received_var=sys.argv[1]
 
 data_flag = 'pathmnist'
 download = True
 
-NUM_EPOCHS,BATCH_SIZE,lr = 5,128,0.001
+NUM_EPOCHS,BATCH_SIZE,lr = 5, 128, 0.001
 
 info = INFO[data_flag]
 task = info['task']
@@ -25,9 +28,9 @@ DataClass = getattr(medmnist, info['python_class'])
 data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(mean=[.5], std=[.5])])
 
 # load the data
-train_dataset = DataClass(split='train', transform=data_transform, download=False)
-val_dataset = DataClass(split='val', transform=data_transform, download=False)
-test_dataset = DataClass(split='test', transform=data_transform, download=False)
+train_dataset = DataClass(split='train', transform=data_transform, download=False, root=received_var)
+val_dataset = DataClass(split='val', transform=data_transform, download=False, root=received_var)
+test_dataset = DataClass(split='test', transform=data_transform, download=False, root=received_var)
 
 # encapsulate data into dataloader form
 train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -159,7 +162,7 @@ def test(split):
         y_true = y_true.numpy()
         y_score = y_score.detach().numpy()
         
-        evaluator = Evaluator(data_flag, split)
+        evaluator = Evaluator(data_flag, split, root=received_var)
         metrics = evaluator.evaluate(y_score)
     
         print('%s  auc: %.3f  acc:%.3f' % (split, *metrics))
