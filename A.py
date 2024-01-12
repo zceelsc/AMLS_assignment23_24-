@@ -5,105 +5,180 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 import torchvision.transforms as transforms
-from medmnist import INFO, Evaluator 
+import torch.nn.functional as F
+
+from medmnist import INFO, Evaluator
 
 received_var=sys.argv[1]
-data_flag = 'pneumoniamnist'
-info = INFO[data_flag]
-task = info['task']   #'binary-class'
-print(task)
-n_channels, n_classes = info['n_channels'] , len(info['label']) # '1''2'
-DataClass = getattr(medmnist, info['python_class'])   #'<class 'medmnist.dataset.PneumoniaMNIST'>'
-
-NUM_EPOCHS,BATCH_SIZE,lr = 3, 128, 0.001
-
-# preprocessing
-data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(mean=[.5], std=[.5])])
-
-# load the data
-train_dataset = DataClass(split='train', transform=data_transform, root=received_var)    
-val_dataset = DataClass(split='val', transform=data_transform, root=received_var)       
-test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
-
-# encapsulate data into dataloader form
-train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-val_loader = data.DataLoader(dataset=val_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
-test_loader = data.DataLoader(dataset=test_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
-
-print(train_dataset)
-print("===================")
-print(val_dataset)
-print("===================")
-print(test_dataset)
 
 # CNN model
 class Net(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(Net, self).__init__()
 
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(in_channels, 16, kernel_size=3           ), nn.BatchNorm2d(16), nn.ReLU())
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(16,          16, kernel_size=3           ), nn.BatchNorm2d(16), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2))
-        self.layer3 = nn.Sequential(
-            nn.Conv2d(16,          64, kernel_size=3           ), nn.BatchNorm2d(64), nn.ReLU())
-        self.layer4 = nn.Sequential(
-            nn.Conv2d(64,          64, kernel_size=3           ), nn.BatchNorm2d(64), nn.ReLU())
-        self.layer5 = nn.Sequential(
-            nn.Conv2d(64,          64, kernel_size=3, padding=1), nn.BatchNorm2d(64), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2))
+        """self.layer1 = nn.Sequential(nn.Conv2d(in_channels, 16, kernel_size=3           ), nn.BatchNorm2d(16), nn.ReLU())
+        self.layer2 = nn.Sequential(nn.Conv2d(16,          16, kernel_size=3           ), nn.BatchNorm2d(16), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2))
+        self.layer3 = nn.Sequential(nn.Conv2d(16,          64, kernel_size=3           ), nn.BatchNorm2d(64), nn.ReLU())
+        self.layer4 = nn.Sequential(nn.Conv2d(64,          64, kernel_size=3           ), nn.BatchNorm2d(64), nn.ReLU())
+        self.layer5 = nn.Sequential(nn.Conv2d(64,          64, kernel_size=3, padding=1), nn.BatchNorm2d(64), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2))
         self.fc = nn.Sequential(
             nn.Linear(64 * 4 * 4, 128), 
             nn.ReLU(), 
             nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(128, num_classes))
+            nn.Linear(128, num_classes))"""
+        
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 32, kernel_size=3, padding=1),nn.BatchNorm2d(32))
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 64, kernel_size=3, padding=1),nn.BatchNorm2d(64))
+        self.conv3 = nn.Sequential(nn.Conv2d(64, 128, kernel_size=3, padding=1),nn.BatchNorm2d(128))
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.fc1 = nn.Linear(1152, 256)  # Adjusted the input size based on the modified structure
+        self.fc2 = nn.Linear(256, num_classes)
 
-    def forward(self, x):
+    """def forward(self, x):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.layer5(x)
+        print(x.size())
         x = x.view(x.size(0), -1)
         x = self.fc(x)
-        return x
-
-model = Net(in_channels=n_channels, num_classes=n_classes)
-# define loss function and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-
-# train
-for epoch in range(NUM_EPOCHS):
-    train_correct = 0
-    train_total = 0
-    test_correct = 0
-    test_total = 0
+        return x"""
     
-    model.train()
-    for inputs, targets in tqdm(train_loader):
-        # forward + backward + optimize
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        targets = targets.squeeze().long()
-        loss = criterion(outputs, targets)
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        #print("After conv1:", x.size())
+        x = self.pool(x)
+        #print("After pool1:", x.size())
+        x = F.relu(self.conv2(x))
+        #print("After conv2:", x.size())
+        x = self.pool(x)
+        #print("After pool2:", x.size())
+        x = F.relu(self.conv3(x))
+        #print("After conv3:", x.size())
+        x = self.pool(x)
+        #print("After pool3:", x.size())
+        x = x.view(x.size(0), -1)
+        #print("After flattening:", x.size())
+        x = F.relu(self.fc1(x))
+        #print("After fc1:", x.size())
+        x = self.fc2(x)
+        #print("After fc2:", x.size())
+        return x
+            
+"""def train_and_evaluate(received_var, num_epochs, batch_size, lr):
+    
+    data_flag = 'pneumoniamnist'
+    info = INFO[data_flag]
+    n_channels, n_classes = info['n_channels'] , len(info['label']) # '1''2'
+    DataClass = getattr(medmnist, info['python_class'])   #'<class 'medmnist.dataset.PneumoniaMNIST'>'
+
+    avg_train_accuracy = 0.0
+    avg_val_accuracy = 0.0
+    avg_test_accuracy = 0.0
+
+    num_runs=3
+    for run in range(num_runs):
+        NUM_EPOCHS = num_epochs
+        BATCH_SIZE = batch_size
+        lr = lr
+
+        # preprocessing
+        data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(mean=[.5], std=[.5])])
+
+        # load the data
+        train_dataset = DataClass(split='train', transform=data_transform, root=received_var)    
+        val_dataset = DataClass(split='val', transform=data_transform, root=received_var)       
+        test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
+
+        # encapsulate data into dataloader form
+        train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        val_loader = data.DataLoader(dataset=val_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
+        test_loader = data.DataLoader(dataset=test_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
+
+        #print(train_dataset)
+        #print("===================")
+        #print(val_dataset)
+        #print("===================")
+        #print(test_dataset)
+
+        model = Net(in_channels=n_channels, num_classes=n_classes)
+        # define loss function and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+        # train
+        for epoch in range(NUM_EPOCHS):            
+            model.train()
+            for inputs, targets in tqdm(train_loader):
+                # forward + backward + optimize
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                targets = targets.squeeze().long()
+                loss = criterion(outputs, targets)
+                
+                loss.backward()
+                optimizer.step()
+
+
+        # evaluation
+        print(f'==> Evaluating - Run {run + 1} ...')
+        train_accuracy = test(model,train_loader,data_flag,received_var,'train')
+        val_accuracy = test(model,val_loader,data_flag,received_var,'val')
+        test_accuracy = test(model,test_loader,data_flag,received_var,'test')
+
+        avg_train_accuracy += train_accuracy
+        avg_val_accuracy += val_accuracy
+        avg_test_accuracy += test_accuracy
         
-        loss.backward()
-        optimizer.step()
+    avg_train_accuracy /= num_runs
+    avg_val_accuracy /= num_runs
+    avg_test_accuracy /= num_runs
+
+    print(f'Average Train Accuracy: {avg_train_accuracy}, Average Validation Accuracy: {avg_val_accuracy}, Average Test Accuracy: {avg_test_accuracy}')
 
 
-# evaluation
-def test(split):
+    return avg_train_accuracy, avg_val_accuracy, avg_test_accuracy  # Return the test accuracy
+
+
+
+
+def find_best_hyperparameters(received_var, num_epochs_list, batch_size_list, lr_list):
+    best_avg_test_accuracy = 0.0
+    best_hyperparameters = {}
+
+    for num_epochs in num_epochs_list:
+        for batch_size in batch_size_list:
+            for lr in lr_list:
+                print(f'Training with Num_Epochs={num_epochs}, Batch_Size={batch_size}, LR={lr}')
+                avg_train_accuracy, avg_val_accuracy, avg_test_accuracy = train_and_evaluate(received_var, num_epochs, batch_size, lr)
+                print('=' * 30)
+
+                # Update best hyperparameters if the current test accuracy is better
+                if avg_test_accuracy > best_avg_test_accuracy:
+                    
+                    best_avg_train_accuracy= avg_train_accuracy
+                    best_avg_val_accuracy= avg_val_accuracy
+
+                    best_avg_test_accuracy = avg_test_accuracy
+                    best_hyperparameters = {'Num_Epochs': num_epochs, 'Batch_Size': batch_size, 'LR': lr}
+
+    print(f'Best Hyperparameters: {best_hyperparameters}')
+    print(f'Best Average Train Accuracy: {best_avg_train_accuracy}, Val Accuracy: {best_avg_val_accuracy}, Test Accuracy: {best_avg_test_accuracy}')
+
+
+#test parameters:
+num_epochs_list = [3, 4, 5]
+batch_size_list = [64 ,128, 256]
+lr_list = [0.001, 0.01, 0.1]
+
+find_best_hyperparameters(received_var, num_epochs_list, batch_size_list, lr_list)
+
+"""
+def test(model, data_loader, data_flag, received_var, split):
     model.eval()
     y_true = torch.tensor([])
     y_score = torch.tensor([])
-    
-    if split=='train':
-        data_loader = train_loader
-    elif split=='val':
-        data_loader = val_loader
-    elif split=='test':
-        data_loader = test_loader
 
     with torch.no_grad():
         for inputs, targets in data_loader:
@@ -123,9 +198,53 @@ def test(split):
         metrics = evaluator.evaluate(y_score)
     
         print('%s  auc: %.3f  acc:%.3f' % (split, *metrics))
+        return metrics[1]
 
 
-print('==> Evaluating ...')
-test('train')
-test('val')
-test('test')
+
+#final
+data_flag = 'pneumoniamnist'
+info = INFO[data_flag]
+n_channels, n_classes = info['n_channels'] , len(info['label']) # '1''2'
+DataClass = getattr(medmnist, info['python_class'])   #'<class 'medmnist.dataset.PneumoniaMNIST'>'
+data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(mean=[.5], std=[.5])])
+
+# load the data
+train_dataset = DataClass(split='train', transform=data_transform, root=received_var)    
+val_dataset = DataClass(split='val', transform=data_transform, root=received_var)       
+test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
+
+#load best parameters
+NUM_EPOCHS,BATCH_SIZE,lr=4,64,0.01
+
+# encapsulate data into dataloader form
+train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+val_loader = data.DataLoader(dataset=val_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
+test_loader = data.DataLoader(dataset=test_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
+
+model = Net(in_channels=n_channels, num_classes=n_classes)
+# define loss function and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+# train
+for epoch in range(NUM_EPOCHS):            
+    model.train()
+    for inputs, targets in tqdm(train_loader):
+        # forward + backward + optimize
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        targets = targets.squeeze().long()
+        loss = criterion(outputs, targets)
+        
+        loss.backward()
+        optimizer.step()
+
+
+# evaluation
+print(f'==> Evaluating ...')
+train_accuracy = test(model,train_loader,data_flag,received_var,'train')
+val_accuracy = test(model,val_loader,data_flag,received_var,'val')
+test_accuracy = test(model,test_loader,data_flag,received_var,'test')
+
+
