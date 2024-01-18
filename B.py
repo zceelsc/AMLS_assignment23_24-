@@ -6,6 +6,7 @@ import torch.optim as optim
 import torch.utils.data as data
 import torchvision.transforms as transforms
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from medmnist import INFO, Evaluator
 
@@ -189,7 +190,7 @@ val_dataset = DataClass(split='val', transform=data_transform, root=received_var
 test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
 
 #load best parameters
-NUM_EPOCHS,BATCH_SIZE,lr=3,256,0.01
+NUM_EPOCHS,BATCH_SIZE,lr=30,256,0.01
 
 # encapsulate data into dataloader form
 train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -201,6 +202,11 @@ model = Net(in_channels=n_channels, num_classes=n_classes)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
+train_accuracies = []
+val_accuracies = []
+test_accuracies = []
+losses = []
+"""
 # train
 for epoch in range(NUM_EPOCHS):            
     model.train()
@@ -213,12 +219,49 @@ for epoch in range(NUM_EPOCHS):
         
         loss.backward()
         optimizer.step()
+        losses.append(loss.item())
 
+    print(f'==> Evaluating - Epoch {epoch + 1} ...')
+    train_accuracy = test(model, train_loader, data_flag, received_var, 'train')
+    val_accuracy = test(model, val_loader, data_flag, received_var, 'val')
+    test_accuracy = test(model, test_loader, data_flag, received_var, 'test')
 
+    train_accuracies.append(train_accuracy)
+    val_accuracies.append(val_accuracy)
+    test_accuracies.append(test_accuracy)
+
+torch.save(model.state_dict(), 'B_trained_model.pth')
+
+# Plotting the learning curve
+plt.subplot(1, 2, 1)
+plt.plot(range(1, NUM_EPOCHS + 1), train_accuracies, label='Train Accuracy')
+plt.plot(range(1, NUM_EPOCHS + 1), val_accuracies, label='Validation Accuracy')
+plt.plot(range(1, NUM_EPOCHS + 1), test_accuracies, label='Test Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.title('Learning Curve')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(losses, label='Training Loss')
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.title('Training Loss Curve')
+plt.legend()
+
+plt.show()   
+"""
+# Create an instance of your model
+model = Net(in_channels=n_channels, num_classes=n_classes)
+
+# Load the trained model state dictionary
+model.load_state_dict(torch.load('B_trained_model.pth'))
+
+# Set the model to evaluation mode
+model.eval()
 # evaluation
 print(f'==> Evaluating ...')
 train_accuracy = test(model,train_loader,data_flag,received_var,'train')
 val_accuracy = test(model,val_loader,data_flag,received_var,'val')
 test_accuracy = test(model,test_loader,data_flag,received_var,'test')
-
 
