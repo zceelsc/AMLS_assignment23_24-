@@ -6,6 +6,7 @@ import torch.optim as optim
 import torch.utils.data as data
 import torchvision.transforms as transforms
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from medmnist import INFO, Evaluator
 
@@ -152,6 +153,7 @@ lr_list = [0.001, 0.01, 0.1]
 find_best_hyperparameters(received_var, num_epochs_list, batch_size_list, lr_list)
 
 """
+
 def test(model, data_loader, data_flag, received_var, split):
     model.eval()
     y_true = torch.tensor([])
@@ -177,7 +179,10 @@ def test(model, data_loader, data_flag, received_var, split):
         print('%s  auc: %.3f  acc:%.3f' % (split, *metrics))
         return metrics[1]
 
-
+train_accuracies = []
+val_accuracies = []
+test_accuracies = []
+losses = []
 
 #final
 data_flag = 'pneumoniamnist'
@@ -192,13 +197,15 @@ val_dataset = DataClass(split='val', transform=data_transform, root=received_var
 test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
 
 #load best parameters
-NUM_EPOCHS,BATCH_SIZE,lr=4,64,0.01
+NUM_EPOCHS,BATCH_SIZE,lr=10,64,0.01
 
 # encapsulate data into dataloader form
 train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = data.DataLoader(dataset=val_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
 test_loader = data.DataLoader(dataset=test_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
 
+
+"""
 model = Net(in_channels=n_channels, num_classes=n_classes)
 # define loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -217,7 +224,49 @@ for epoch in range(NUM_EPOCHS):
         loss.backward()
         optimizer.step()
 
+        losses.append(loss.item())
 
+    print(f'==> Evaluating - Epoch {epoch + 1} ...')
+    train_accuracy = test(model, train_loader, data_flag, received_var, 'train')
+    val_accuracy = test(model, val_loader, data_flag, received_var, 'val')
+    test_accuracy = test(model, test_loader, data_flag, received_var, 'test')
+
+    train_accuracies.append(train_accuracy)
+    val_accuracies.append(val_accuracy)
+    test_accuracies.append(test_accuracy)
+
+torch.save(model.state_dict(), 'A_trained_model.pth')
+
+# Plotting the learning curve
+plt.subplot(1, 2, 1)
+plt.plot(range(1, NUM_EPOCHS + 1), train_accuracies, label='Train Accuracy')
+plt.plot(range(1, NUM_EPOCHS + 1), val_accuracies, label='Validation Accuracy')
+plt.plot(range(1, NUM_EPOCHS + 1), test_accuracies, label='Test Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.title('Learning Curve')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(losses, label='Training Loss')
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.title('Training Loss Curve')
+plt.legend()
+
+plt.show()   
+"""
+
+
+
+# Create an instance of your model
+model = Net(in_channels=n_channels, num_classes=n_classes)
+
+# Load the trained model state dictionary
+model.load_state_dict(torch.load('A_trained_model.pth'))
+
+# Set the model to evaluation mode
+model.eval()
 # evaluation
 print(f'==> Evaluating ...')
 train_accuracy = test(model,train_loader,data_flag,received_var,'train')
