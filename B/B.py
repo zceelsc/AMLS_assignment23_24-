@@ -188,7 +188,12 @@ data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(
 train_dataset = DataClass(split='train', transform=data_transform, root=received_var)    
 val_dataset = DataClass(split='val', transform=data_transform, root=received_var)       
 test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
-
+print(train_dataset)
+print("===================")
+print(val_dataset)
+print("===================")
+print(test_dataset)
+print("===================")
 #load best parameters
 NUM_EPOCHS,BATCH_SIZE,lr=30,256,0.01
 
