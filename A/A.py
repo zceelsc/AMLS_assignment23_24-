@@ -195,7 +195,12 @@ data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(
 train_dataset = DataClass(split='train', transform=data_transform, root=received_var)    
 val_dataset = DataClass(split='val', transform=data_transform, root=received_var)       
 test_dataset = DataClass(split='test', transform=data_transform, root=received_var)      
-
+print(train_dataset)
+print("===================")
+print(val_dataset)
+print("===================")
+print(test_dataset)
+print("===================")
 #load best parameters
 NUM_EPOCHS,BATCH_SIZE,lr=10,64,0.01
 
@@ -204,8 +209,8 @@ train_loader = data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shu
 val_loader = data.DataLoader(dataset=val_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
 test_loader = data.DataLoader(dataset=test_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
 
-
 """
+
 model = Net(in_channels=n_channels, num_classes=n_classes)
 # define loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -255,9 +260,9 @@ plt.title('Training Loss Curve')
 plt.legend()
 
 plt.show()   
+
+
 """
-
-
 
 # Create an instance of your model
 model = Net(in_channels=n_channels, num_classes=n_classes)
