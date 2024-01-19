@@ -68,7 +68,7 @@ def train_and_evaluate(received_var, num_epochs, batch_size, lr):
     
     data_flag = 'pathmnist'
     info = INFO[data_flag]
-    n_channels, n_classes = info['n_channels'] , len(info['label']) # '1''2'
+    n_channels, n_classes = info['n_channels'] , len(info['label']) # '3''9'
     DataClass = getattr(medmnist, info['python_class'])   #'<class 'medmnist.dataset.PneumoniaMNIST'>'
 
     avg_train_accuracy = 0.0
@@ -180,7 +180,7 @@ find_best_hyperparameters(received_var, num_epochs_list, batch_size_list, lr_lis
 #final
 data_flag = 'pathmnist'
 info = INFO[data_flag]
-n_channels, n_classes = info['n_channels'] , len(info['label']) # '1''2'
+n_channels, n_classes = info['n_channels'] , len(info['label']) # '3''9'
 DataClass = getattr(medmnist, info['python_class'])   #'<class 'medmnist.dataset.PneumoniaMNIST'>'
 data_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(mean=[.5], std=[.5])])
 
