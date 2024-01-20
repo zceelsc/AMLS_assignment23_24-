@@ -2,7 +2,7 @@
 all imports:
 
 import subprocess
-
+import os
 from tqdm import tqdm
 import numpy as np
 import torch, medmnist, sys
